@@ -18,6 +18,5 @@ if __name__ == '__main__':
 	RCM = rubikCubeManipulator.RubikCubeManipulator(simulate=False)
 	print "init done"
 	#RCM.moveToSynchroPosition()
-	RCM.sidePostument(z_dist=0.1,showAngle=0)
-	RCM.sidePostument(z_dist=0.1,showAngle=1)
+	RCM.facePostument(z_dist=0.0)
 	print "program done"

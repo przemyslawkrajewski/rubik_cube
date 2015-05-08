@@ -23,7 +23,7 @@ class RubikCubeManipulator:
 	def moveToSynchroPosition(self):
 		self.robot.track.moveToSynchroPosition(self.simulate)
 		self.robot.postument.moveToSynchroPosition(self.simulate)
-	def facePostument(self,z_dist=0.1,x_dist=0.0,y_dist=0.0):
+	def facePostument(self,z_dist=0.0,x_dist=0.0,y_dist=0.0,showAngle=pi/2):
 		#Set postument position
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
 		#Get postument position
@@ -32,7 +32,8 @@ class RubikCubeManipulator:
 		postRot = PyKDL.Rotation(postTrans[0][0],postTrans[0][1],postTrans[0][2],	postTrans[1][0],postTrans[1][1],postTrans[1][2],	postTrans[2][0],postTrans[2][1],postTrans[2][2])	
 		#rotate
 		trackRot = postRot
-		trackRot.DoRotY(3.14)
+		trackRot.DoRotY(self.pi)
+		trackRot.DoRotZ(showAngle)
 		# build quaternion
 		trackQuaternion = Quaternion(trackRot.GetQuaternion()[0],trackRot.GetQuaternion()[1],trackRot.GetQuaternion()[2],trackRot.GetQuaternion()[3])
 		#build position with translation along z axis
@@ -41,7 +42,7 @@ class RubikCubeManipulator:
 							postTrans[2][2]*z_dist+postTrans[2][1]*y_dist+postTrans[2][0]*x_dist+postTrans[2][3])
 		#perform movement
 		self.robot.track.moveToCartesianPosition(Pose(trackPoint,trackQuaternion),self.simulate)
-	def faceTrack(self,z_dist=0.1,x_dist=0.0,y_dist=0.0):
+	def faceTrack(self,z_dist=0.0,x_dist=0.0,y_dist=0.0,showAngle=pi/2):
 		#Set postument position
 		#self.robot.track.moveToJointPosition([0.2, 1.887562902394057, -1.3432024707381522, -0.2854391974722371, -0.8070492267377007, 4.67043035734827, -0.05821693027504106],self.simulate)
 		#Get postument position
@@ -51,6 +52,7 @@ class RubikCubeManipulator:
 		#rotate
 		postRot = trackRot
 		postRot.DoRotY(self.pi)
+		trackRot.DoRotZ(showAngle)
 		# build quaternion
 		postQuaternion = Quaternion(postRot.GetQuaternion()[0],postRot.GetQuaternion()[1],postRot.GetQuaternion()[2],postRot.GetQuaternion()[3])
 		#build position with translation along z axis
@@ -91,9 +93,5 @@ class RubikCubeManipulator:
 		trackRot.DoRotZ(showAngle)
 		# build quaternion
 		trackQuaternion = Quaternion(trackRot.GetQuaternion()[0],trackRot.GetQuaternion()[1],trackRot.GetQuaternion()[2],trackRot.GetQuaternion()[3])
-		if self.robot.track.isIKSolutionExist(Pose(trackPoint,trackQuaternion)):
-			print "Yay!"
-		else:
-			print "No!"
 		#perform movement
 		self.robot.track.moveToCartesianPosition(Pose(trackPoint,trackQuaternion),self.simulate)
