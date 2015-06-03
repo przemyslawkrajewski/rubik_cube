@@ -21,14 +21,15 @@ if __name__ == '__main__':
 	
 	#RCM.moveToSynchroPosition()
 	
-	gotCube = RCM.getCubeFromHumanToTrack()
+	#gotCube = RCM.getCubeFromHumanToPostument()
 	
-	if gotCube:
-		RCM.correctCubeGripTrack()
+	#if gotCube:
+	#RCM.correctCubeGripTrack()
 	
-		RCM.getCubeFromTrackToPostument()
-		RCM.correctCubeGripPostument()
-		
-		RCM.giveBackCubePostument()
+		#RCM.getCubeFromPostumentToTrack()
+		#RCM.correctCubeGripTrack()
+	#RCM.getCubeFromTrackToPostumentSide()
+		#RCM.correctCubeGripPostument()
+		#RCM.giveBackCubePostument()
 	time.sleep(100)
 	print "program done" 
