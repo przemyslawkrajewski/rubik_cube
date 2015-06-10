@@ -127,7 +127,7 @@ class RubikCubeManipulator:
 	def getCubeFromHumanToTrack(self):
 		#self.robot.track.moveToJointPosition([0.549969, 0.9265588068203238, -1.5550934102940197, 0.04871716017958537, 1.3063556317588827, 2.6762106103323573, -0.13097870260389663],self.simulate)
 		self.robot.track.moveToCartesianPosition(Pose(Point(1,1,1.18),Quaternion(-0.441448339193, 0.440445333852, -0.552396228639, 0.55316333781)),self.simulate)
-		self.robot.track.tfgToJointPosition(position=0.068,time=6)
+		self.robot.track.tfgToJointPosition(position=0.068,simulate=self.simulate)
 		self.robot.track.startForceControl(tran_z=True,mov_z=0.013)
 		gotCube=False
 		for i in range(1,50):
@@ -138,7 +138,7 @@ class RubikCubeManipulator:
 				break
 		self.robot.track.stopForceControl()
 		if gotCube:
-			self.robot.track.tfgToJointPosition(position=self.gripJoint,time=3)
+			self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 		else:
 			self.robot.track.moveToCartesianPosition(Pose(Point(1,1,1.18),Quaternion(-0.441448339193, 0.440445333852, -0.552396228639, 0.55316333781)),self.simulate)
 
@@ -147,7 +147,7 @@ class RubikCubeManipulator:
 	def getCubeFromHumanToPostument(self):
 		#self.robot.track.moveToJointPosition([1, 0.0, -1.4476547584053457, 0.012313341484619551, 1.2106388401258297, 1.57, 0],self.simulate)
 		self.robot.postument.moveToCartesianPosition(Pose(Point(0.89668151225, 0.10325876098, 1.32973306404),Quaternion(-0.247541182161, 0.554930714941, -0.682010199583, 0.406985690674)),self.simulate)
-		self.robot.postument.tfgToJointPosition(position=0.068,time=3)
+		self.robot.postument.tfgToJointPosition(position=0.068,simulate=self.simulate)
 		self.robot.postument.startForceControl(tran_z=True,mov_z=0.013)
 		gotCube=False
 		for i in range(1,50):
@@ -158,26 +158,26 @@ class RubikCubeManipulator:
 				break
 		self.robot.postument.stopForceControl()
 		if gotCube:
-			self.robot.postument.tfgToJointPosition(position=self.gripJoint,time=6)
+			self.robot.postument.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 
 		return gotCube
 		
 	def getCubeFromTrackToPostument(self):
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
 		self.facePostument(z_dist=0.15,y_dist=-0.01)
-		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,time=4)
+		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		self.facePostument(z_dist=0.006,y_dist=-0.01)
 		
 		self.robot.track.startForceControl(tran_x=True,tran_y=True)
-		self.robot.postument.tfgToJointPosition(position=self.gripJoint,time=6)
-		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,time=6)
+		self.robot.postument.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
+		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		self.robot.track.stopForceControl()
 		
 		self.facePostument(z_dist=0.15,y_dist=-0.01)
 	def getCubeFromTrackToPostumentSide(self,angle=0):
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
 		self.sidePostument(z_dist=0.15,y_dist=-0.015,x_dist=-0.01,showAngle=3*self.pi/4,angle=self.pi/4)
-		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,time=6)
+		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		self.sidePostument(z_dist=0.02,y_dist=-0.015,x_dist=-0.01,showAngle=3*self.pi/4,angle=self.pi/4)
 		
 		self.sidePostument(z_dist=0.15,y_dist=-0.015,x_dist=-0.01,showAngle=3*self.pi/4,angle=self.pi/4)
@@ -185,38 +185,38 @@ class RubikCubeManipulator:
 	def getCubeFromPostumentToTrack(self):
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
 		self.facePostument(z_dist=0.15,y_dist=-0.01)
-		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,time=4)
+		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		self.facePostument(z_dist=0.006,y_dist=-0.01)
 		
 		self.robot.postument.startForceControl(tran_x=True,tran_y=True)
-		self.robot.track.tfgToJointPosition(position=self.gripJoint,time=6)
-		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,time=6)
+		self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
+		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		self.robot.postument.stopForceControl()
 		
 		self.facePostument(z_dist=0.15,y_dist=-0.01)
 		
 	def correctCubeGripPostument(self):
 		self.robot.postument.moveToJointPosition([0, -1.541861095576026, 0.0, 0.1007174886590251, 1.57, -1.01731301362624],self.simulate)
-		self.robot.postument.tfgToJointPosition(position=self.openJoint,time=3)
-		self.robot.postument.tfgToJointPosition(position=self.gripJoint,time=3)
+		self.robot.postument.tfgToJointPosition(position=self.openJoint,simulate=self.simulate)
+		self.robot.postument.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 		
 	def correctCubeGripTrack(self):
 		self.robot.track.moveToJointPosition([0.1, 0, -1.541861095576026, 0.0, 0.1007174886590251, 1.57, -1.01731301362624],self.simulate)
-		self.robot.track.tfgToJointPosition(position=self.openJoint,time=3)
-		self.robot.track.tfgToJointPosition(position=self.gripJoint,time=3)
+		self.robot.track.tfgToJointPosition(position=self.openJoint,simulate=self.simulate)
+		self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 		
 	def giveBackCubeTrack(self,throw=False):
 		self.robot.track.moveToJointPosition([0.1, 0, -1.541861095576026, 0.0, 0.1007174886590251, 4.73, -1.01731301362624],self.simulate)
 		if throw==False:
 			self.robot.track.moveRelativeToCartesianPosition(z_tran=0.15)
-		self.robot.track.tfgToJointPosition(position=self.openJoint,time=3)
+		self.robot.track.tfgToJointPosition(position=self.openJoint,simulate=self.simulate)
 		if throw==False:
 			self.robot.track.moveRelativeToCartesianPosition(z_tran=-0.15)
 	def giveBackCubePostument(self,throw=False):
 		self.robot.postument.moveToJointPosition([0, -1.541861095576026, 0.0, 0.1007174886590251, 4.73, -1.01731301362624],self.simulate)
 		if throw==False:
 			self.robot.postument.moveRelativeToCartesianPosition(z_tran=0.15)
-		self.robot.postument.tfgToJointPosition(position=self.openJoint,time=3)
+		self.robot.postument.tfgToJointPosition(position=self.openJoint,simulate=self.simulate)
 		if throw==False:
 			self.robot.postument.moveRelativeToCartesianPosition(z_tran=-0.15)
 	#

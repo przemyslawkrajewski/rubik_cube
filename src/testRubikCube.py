@@ -15,21 +15,21 @@ import rubikCubeManipulator
 
 if __name__ == '__main__':
 	
-	RCM = rubikCubeManipulator.RubikCubeManipulator(simulate=False,planner=None)
+	RCM = rubikCubeManipulator.RubikCubeManipulator(simulate=True,planner=None)
 	print "init done"
 	#RCM.getCubeFromTrackToPostument()
 	
 	#RCM.moveToSynchroPosition()
 	
-	#gotCube = RCM.getCubeFromHumanToPostument()
+	gotCube = RCM.getCubeFromHumanToPostument()
 	
 	#if gotCube:
-	#RCM.correctCubeGripTrack()
-	
+	RCM.correctCubeGripPostument()
+	RCM.getCubeFromPostumentToTrack()
 		#RCM.getCubeFromPostumentToTrack()
 		#RCM.correctCubeGripTrack()
 	#RCM.getCubeFromTrackToPostumentSide()
 		#RCM.correctCubeGripPostument()
-		#RCM.giveBackCubePostument()
+	RCM.giveBackCubeTrack()
 	time.sleep(100)
 	print "program done" 
