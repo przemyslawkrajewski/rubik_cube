@@ -22,6 +22,8 @@ class RubikCubeManipulator:
 	def __init__(self,mode='urdf',xmlFile='data/irp6both.env.xml',viewerEnabled=True,manageIrpos=True,simulate=True,planner=None):
 		self.env, self.robot = openraveIrp6.initialize(mode,xmlFile,viewerEnabled,manageIrpos,planner)
 		self.simulate=simulate
+		self.cube = self.env.ReadKinBodyXMLFile('data/cube.kinbody.xml')
+		self.env.Add(self.cube)
 		
 	def moveToSynchroPosition(self):
 		self.robot.track.moveToSynchroPosition(self.simulate)
@@ -126,54 +128,91 @@ class RubikCubeManipulator:
 
 	def getCubeFromHumanToTrack(self):
 		#self.robot.track.moveToJointPosition([0.549969, 0.9265588068203238, -1.5550934102940197, 0.04871716017958537, 1.3063556317588827, 2.6762106103323573, -0.13097870260389663],self.simulate)
+		#Preparing arm and gripper to get cube
 		self.robot.track.moveToCartesianPosition(Pose(Point(1,1,1.18),Quaternion(-0.441448339193, 0.440445333852, -0.552396228639, 0.55316333781)),self.simulate)
 		self.robot.track.tfgToJointPosition(position=0.068,simulate=self.simulate)
+		
+		#Force controll to approach the cube
 		self.robot.track.startForceControl(tran_z=True,mov_z=0.013)
 		gotCube=False
 		for i in range(1,50):
 			reading = self.robot.track.getForceReadings()
 			time.sleep(0.1)
+			#if reading force is enough cube is obtained
 			if reading.force.z > 8:
 				gotCube=True
 				break
 		self.robot.track.stopForceControl()
+		
+		#closing gripper
 		if gotCube:
 			self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 		else:
 			self.robot.track.moveToCartesianPosition(Pose(Point(1,1,1.18),Quaternion(-0.441448339193, 0.440445333852, -0.552396228639, 0.55316333781)),self.simulate)
 
+		self.robot.track.attachItem(self.cube)
 		return gotCube
 
 	def getCubeFromHumanToPostument(self):
 		#self.robot.track.moveToJointPosition([1, 0.0, -1.4476547584053457, 0.012313341484619551, 1.2106388401258297, 1.57, 0],self.simulate)
+		#Preparing arm and gripper to get cube
 		self.robot.postument.moveToCartesianPosition(Pose(Point(0.89668151225, 0.10325876098, 1.32973306404),Quaternion(-0.247541182161, 0.554930714941, -0.682010199583, 0.406985690674)),self.simulate)
 		self.robot.postument.tfgToJointPosition(position=0.068,simulate=self.simulate)
+		
+		#Force controll to approach the cube
 		self.robot.postument.startForceControl(tran_z=True,mov_z=0.013)
 		gotCube=False
 		for i in range(1,50):
 			reading = self.robot.postument.getForceReadings()
 			time.sleep(0.1)
+			#if reading force is enough cube is obtained
 			if reading.force.z > 8:
 				gotCube=True
 				break
 		self.robot.postument.stopForceControl()
+		
+		#closing gripper
 		if gotCube:
 			self.robot.postument.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
-
+		self.robot.postument.attachItem(self.cube)
 		return gotCube
 		
 	def getCubeFromTrackToPostument(self):
+		#Preparing postument to give cube
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
-		self.facePostument(z_dist=0.15,x_dist=0.035,y_dist=-0.015)
-		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
-		self.facePostument(z_dist=0.006,x_dist=0.035,y_dist=-0.015)
 		
+		#Tracks first approach to cube
+		self.facePostument(z_dist=0.15,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		
+		#Postument opens gripper
+		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
+
+		#Track comes nearer
+		self.facePostument(z_dist=0.01,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+
+		#Postument tights gripper but still open
+		self.robot.track.startForceControl(tran_x=True,tran_y=True)
+		self.robot.postument.tfgToJointPosition(position=0.068,simulate=self.simulate)
+		self.robot.track.stopForceControl()
+
+		#Force controll to track approach to the end
+		self.robot.track.releaseItem(self.cube)
+		self.robot.track.startForceControl(tran_z=True,mov_z=0.013)
+		self.robot.postument.startForceControl(rot_x=True,rot_y=True)
+		time.sleep(5)
+		self.robot.postument.stopForceControl()
+		self.robot.track.stopForceControl()
+	
+		#Postument closes gripper and Track opens
 		self.robot.track.startForceControl(tran_x=True,tran_y=True)
 		self.robot.postument.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		self.robot.track.stopForceControl()
 		
-		self.facePostument(z_dist=0.15,y_dist=-0.01)
+		#Track is moving back
+		self.robot.postument.attachItem(self.cube)
+		self.facePostument(z_dist=0.15,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		
 	def getCubeFromTrackToPostumentSide(self,angle=0):
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
 		self.sidePostument(z_dist=0.15,y_dist=-0.015,x_dist=-0.01,showAngle=3*self.pi/4,angle=self.pi/4)
@@ -185,19 +224,47 @@ class RubikCubeManipulator:
 		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		self.robot.postument.stopForceControl()
 		
+		self.robot.track.releaseItem(self.cube)
+		self.robot.postument.attachItem(self.cube)
+		
 		self.robot.postument.moveRelativeToCartesianPosition(z_tran=-0.15)
 		
 	def getCubeFromPostumentToTrack(self):
+		#Preparing postument to give cube
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
-		self.facePostument(z_dist=0.15,x_dist=0.035,y_dist=-0.015,showAngle=3*self.pi/4)
+		
+		#Tracks first approach to cube
+		self.facePostument(z_dist=0.15,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		
+		#Track opens gripper
 		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
-		self.facePostument(z_dist=0.006,x_dist=0.035,y_dist=-0.015,showAngle=3*self.pi/4)
+		
+		#Track comes nearer
+		self.facePostument(z_dist=0.01,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		
+		#Track tights gripper but still open
+		self.robot.postument.startForceControl(tran_x=True,tran_y=True)
+		self.robot.track.tfgToJointPosition(position=0.068,simulate=self.simulate)
+		self.robot.postument.stopForceControl()
+		
+		#Force controll to track approach to the end
+		self.robot.postument.releaseItem(self.cube)
+		self.robot.track.startForceControl(tran_z=True,mov_z=0.013)
+		self.robot.postument.startForceControl(rot_x=True,rot_y=True)
+		time.sleep(5)
+		self.robot.postument.stopForceControl()
+		self.robot.track.stopForceControl()
+		
+		#Track closes gripper and Postument opens
 		self.robot.postument.startForceControl(tran_x=True,tran_y=True)
 		self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		self.robot.postument.stopForceControl()
 		
-		self.facePostument(z_dist=0.15,y_dist=-0.01,showAngle=self.pi/4)
+		#Track is moving back
+		self.robot.track.attachItem(self.cube)
+		self.facePostument(z_dist=0.15,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		
 		
 	def correctCubeGripPostument(self):
 		self.robot.postument.moveToJointPosition([0, -1.541861095576026, 0.0, 0.1007174886590251, 1.57, -1.01731301362624],self.simulate)
@@ -216,6 +283,7 @@ class RubikCubeManipulator:
 		self.robot.track.tfgToJointPosition(position=self.openJoint,simulate=self.simulate)
 		if throw==False:
 			self.robot.track.moveRelativeToCartesianPosition(z_tran=-0.15)
+		self.robot.track.releaseItem(self.cube)
 	def giveBackCubePostument(self,throw=False):
 		self.robot.postument.moveToJointPosition([0, -1.541861095576026, 0.0, 0.1007174886590251, 4.73, -1.01731301362624],self.simulate)
 		if throw==False:
@@ -223,6 +291,7 @@ class RubikCubeManipulator:
 		self.robot.postument.tfgToJointPosition(position=self.openJoint,simulate=self.simulate)
 		if throw==False:
 			self.robot.postument.moveRelativeToCartesianPosition(z_tran=-0.15)
+		self.robot.postument.releaseItem(self.cube)
 	#
 	#
 	#	Watching cube
