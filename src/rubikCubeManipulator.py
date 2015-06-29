@@ -18,6 +18,12 @@ class RubikCubeManipulator:
 	gripJoint=0.055
 	openJoint=0.068
 	wideOpenJoint=0.09
+	
+	fcx=0.025
+	fcy=-0.012
+	
+	spcx=0.02
+	spcy=0.015
 
 	def __init__(self,mode='urdf',xmlFile='data/irp6both.env.xml',viewerEnabled=True,manageIrpos=True,simulate=True,planner=None):
 		self.env, self.robot = openraveIrp6.initialize(mode,xmlFile,viewerEnabled,manageIrpos,planner)
@@ -82,6 +88,8 @@ class RubikCubeManipulator:
 		#Transform rotation to PyKDL
 		postRot = PyKDL.Rotation(postTrans[0][0],postTrans[0][1],postTrans[0][2],	postTrans[1][0],postTrans[1][1],postTrans[1][2],	postTrans[2][0],postTrans[2][1],postTrans[2][2])	
 
+		postMat = self.quaternion_to_matrix(postRot.GetQuaternion())
+
 		if angle==None:
 			angle=0
 			while angle<self.pi*2:
@@ -96,9 +104,9 @@ class RubikCubeManipulator:
 				trackMat = self.quaternion_to_matrix(trackRot.GetQuaternion())
 
 				#build position with translation along z axis
-				trackPoint = Point (trackMat[0][2]*z_dist+trackMat[0][1]*y_dist+trackMat[0][0]*x_dist+postTrans[0][3],
-									trackMat[1][2]*z_dist+trackMat[1][1]*y_dist+trackMat[1][0]*x_dist+postTrans[1][3]+self.robotsDistance,
-									trackMat[2][2]*z_dist+trackMat[2][1]*y_dist+trackMat[2][0]*x_dist+postTrans[2][3])
+				trackPoint = Point (-trackMat[0][2]*z_dist+trackMat[0][1]*y_dist+trackMat[0][0]*x_dist+postTrans[0][3],
+									-trackMat[1][2]*z_dist+trackMat[1][1]*y_dist+trackMat[1][0]*x_dist+postTrans[1][3]+self.robotsDistance,
+									-trackMat[2][2]*z_dist+trackMat[2][1]*y_dist+trackMat[2][0]*x_dist+postTrans[2][3])
 
 				if self.robot.track.isIKSolutionExist(Pose(trackPoint,trackQuaternion)):
 					break
@@ -182,13 +190,15 @@ class RubikCubeManipulator:
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
 		
 		#Tracks first approach to cube
-		self.facePostument(z_dist=0.15,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		self.facePostument(z_dist=0.15,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
+		
+		self.robot.track.releaseItem(self.cube)
 		
 		#Postument opens gripper
 		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 
 		#Track comes nearer
-		self.facePostument(z_dist=0.01,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		self.facePostument(z_dist=0.005,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
 
 		#Postument tights gripper but still open
 		self.robot.track.startForceControl(tran_x=True,tran_y=True)
@@ -196,7 +206,6 @@ class RubikCubeManipulator:
 		self.robot.track.stopForceControl()
 
 		#Force controll to track approach to the end
-		self.robot.track.releaseItem(self.cube)
 		self.robot.track.startForceControl(tran_z=True,mov_z=0.013)
 		self.robot.postument.startForceControl(rot_x=True,rot_y=True)
 		time.sleep(5)
@@ -210,37 +219,23 @@ class RubikCubeManipulator:
 		self.robot.track.stopForceControl()
 		
 		#Track is moving back
-		self.robot.postument.attachItem(self.cube)
-		self.facePostument(z_dist=0.15,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
-		
-	def getCubeFromTrackToPostumentSide(self,angle=0):
-		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
-		self.sidePostument(z_dist=0.15,y_dist=-0.015,x_dist=-0.01,showAngle=3*self.pi/4,angle=self.pi/4)
-		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
-		self.sidePostument(z_dist=0.016,y_dist=-0.015,x_dist=-0.01,showAngle=3*self.pi/4,angle=self.pi/4)
-		
-		self.robot.postument.startForceControl(tran_x=True,tran_z=True)
-		self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
-		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
-		self.robot.postument.stopForceControl()
-		
-		self.robot.track.releaseItem(self.cube)
+		self.facePostument(z_dist=0.15,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
 		self.robot.postument.attachItem(self.cube)
 		
-		self.robot.postument.moveRelativeToCartesianPosition(z_tran=-0.15)
-		
-	def getCubeFromPostumentToTrack(self):
+	def getCubeFromPostumentToTrackSide(self,angle=0):
 		#Preparing postument to give cube
 		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
 		
 		#Tracks first approach to cube
-		self.facePostument(z_dist=0.15,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		self.sidePostument(z_dist=0.15,y_dist=self.spcy,x_dist=self.spcx,showAngle=-self.pi/4,angle=self.pi/4)
 		
 		#Track opens gripper
 		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		
+		self.robot.postument.releaseItem(self.cube)
+		
 		#Track comes nearer
-		self.facePostument(z_dist=0.01,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
+		self.sidePostument(z_dist=0.016,y_dist=self.spcy,x_dist=self.spcx,showAngle=-self.pi/4,angle=self.pi/4)
 		
 		#Track tights gripper but still open
 		self.robot.postument.startForceControl(tran_x=True,tran_y=True)
@@ -248,7 +243,45 @@ class RubikCubeManipulator:
 		self.robot.postument.stopForceControl()
 		
 		#Force controll to track approach to the end
+		self.robot.track.startForceControl(tran_z=True,mov_z=0.013)
+		self.robot.postument.startForceControl(rot_x=True,rot_y=True)
+		#self.robot.track.moveRelativeToCartesianPosition(z_tran=0.01)
+		time.sleep(5)
+		self.robot.postument.stopForceControl()
+		self.robot.track.stopForceControl()
+		
+		#Track closes gripper and Postument opens
+		self.robot.postument.startForceControl(tran_x=True,tran_y=True)
+		self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
+		self.robot.postument.stopForceControl()
+		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
+		
+		self.robot.postument.moveRelativeToCartesianPosition(z_tran=-0.15)
+		
+		self.robot.track.attachItem(self.cube)
+		
+	def getCubeFromPostumentToTrack(self):
+		#Preparing postument to give cube
+		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
+		
+		#Tracks first approach to cube
+		self.facePostument(z_dist=0.15,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
+		
+		#Track opens gripper
+		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
+		
 		self.robot.postument.releaseItem(self.cube)
+		
+		#Track comes nearer
+		#self.postument.moveRelativeToCartesianPosition(z_tran=0.15-0.005)
+		self.facePostument(z_dist=0.005,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
+		
+		#Track tights gripper but still open
+		self.robot.postument.startForceControl(tran_x=True,tran_y=True)
+		self.robot.track.tfgToJointPosition(position=0.068,simulate=self.simulate)
+		self.robot.postument.stopForceControl()
+		
+		#Force controll to track approach to the end
 		self.robot.track.startForceControl(tran_z=True,mov_z=0.013)
 		self.robot.postument.startForceControl(rot_x=True,rot_y=True)
 		time.sleep(5)
@@ -262,8 +295,9 @@ class RubikCubeManipulator:
 		self.robot.postument.stopForceControl()
 		
 		#Track is moving back
+		self.facePostument(z_dist=0.15,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
+		
 		self.robot.track.attachItem(self.cube)
-		self.facePostument(z_dist=0.15,x_dist=0.03,y_dist=-0.012,showAngle=self.pi/2)
 		
 		
 	def correctCubeGripPostument(self):
@@ -298,6 +332,25 @@ class RubikCubeManipulator:
 	#
 	#
 
+	#
+	#
+	#	Testing
+	#
+	#
+
+	def faceRobotTest(self):
+		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
+		self.facePostument(z_dist=0.15,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
+		self.facePostument(z_dist=0.05,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
+		time.sleep(20)
+		self.facePostument(z_dist=0.15,x_dist=0.04,y_dist=-0.012,showAngle=self.pi/2)
+
+	def sidePostumentRobotTest(self):
+		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.754815971689398, -1.91731301362624],self.simulate)
+		self.sidePostument(z_dist=0.15,y_dist=self.spcy,x_dist=self.spcx,showAngle=-self.pi/4,angle=self.pi/4)		 
+		#self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
+		self.sidePostument(z_dist=0.05,y_dist=self.spcy,x_dist=self.spcx,showAngle=-self.pi/4,angle=self.pi/4)		 
+		#self.sidePostument(z_dist=0.05,y_dist=self.spcy,x_dist=self.spcx,angle=self.pi/2)
 
 	def quaternion_to_matrix(self,q):
 		X=q[0];
