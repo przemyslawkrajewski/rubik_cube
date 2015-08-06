@@ -15,26 +15,29 @@ import rubikCubeManipulator
 
 if __name__ == '__main__':
 	
-	RCM = rubikCubeManipulator.RubikCubeManipulator(simulate=False,planner=None,manageIrpos=True)
+	RCM = rubikCubeManipulator.RubikCubeManipulator(simulate=False,planner=None,manageIrpos=True,csn=True)
 	print "init done"
 	
-	#RCM.moveToSynchroPosition()
+	#gotCube = RCM.getCubeFromHumanToPostument()
+	RCM.setCorrectionFace()
+	RCM.setCorrectionSide()
 	
-	gotCube = RCM.getCubeFromHumanToPostument()
-	
-	#if gotCube:
+	RCM.showCubeFaceToPostument(side=1)
 
-	#RCM.sidePostumentRobotTest()
-	
-	RCM.getCubeFromPostumentToTrack()
-	RCM.correctCubeGripTrack()
-	
-	RCM.getCubeFromTrackToPostument()
-	RCM.correctCubeGripPostument()
-	
-	RCM.getCubeFromPostumentToTrackSide()
-		
-	RCM.giveBackCubeTrack()
-	
+	#TEST FLIPPING CUBE
+	"""RCM.flipCubePostument()
+	RCM.giveBackCubePostument()
+
+	#TEST WATCHING CUBE
+	RCM.showCubeFaceToPostument(side=0)
+	time.sleep(2)
+	RCM.showCubeFaceToPostument(side=1)
+	time.sleep(2)
+	RCM.showCubeFaceToPostument(side=2)
+	time.sleep(2)
+	RCM.showCubeFaceToPostument(side=3)
+	time.sleep(2)
+	RCM.showCubeFaceToPostument(side=4)"""
+
 	#time.sleep(100)
 	print "program done" 

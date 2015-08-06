@@ -1,0 +1,11 @@
+rubik_cube/Tile_color tile1
+rubik_cube/Tile_color tile2
+rubik_cube/Tile_color tile3
+rubik_cube/Tile_color tile4
+rubik_cube/Tile_color tile5
+rubik_cube/Tile_color tile6
+rubik_cube/Tile_color tile7
+rubik_cube/Tile_color tile8
+rubik_cube/Tile_color tile9
+float64 x
+float64 y
