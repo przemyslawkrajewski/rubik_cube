@@ -9,3 +9,4 @@ rubik_cube/Tile_color tile8
 rubik_cube/Tile_color tile9
 float64 x
 float64 y
+float64 z_rot

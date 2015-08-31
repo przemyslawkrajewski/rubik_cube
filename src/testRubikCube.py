@@ -19,11 +19,20 @@ if __name__ == '__main__':
 	print "init done"
 	
 	#gotCube = RCM.getCubeFromHumanToPostument()
-	RCM.setCorrectionFace()
-	RCM.setCorrectionSide()
 	
-	RCM.showCubeFaceToPostument(side=1)
-
+		
+	RCM.solveRubikCube()
+	
+	"""RCM.getCubeFromPostumentToTrackSide(side=0)
+	RCM.getCubeFromTrackToPostument(angle=180)
+	RCM.getCubeFromPostumentToTrackSide(side=1)
+	RCM.getCubeFromTrackToPostument(angle=180)
+	RCM.getCubeFromPostumentToTrackSide(side=2)
+	RCM.getCubeFromTrackToPostument(angle=180)
+	RCM.getCubeFromPostumentToTrackSide(side=3)
+	RCM.getCubeFromTrackToPostument(angle=180)
+	RCM.giveBackCubePostument()"""
+	
 	#TEST FLIPPING CUBE
 	"""RCM.flipCubePostument()
 	RCM.giveBackCubePostument()
@@ -38,6 +47,6 @@ if __name__ == '__main__':
 	RCM.showCubeFaceToPostument(side=3)
 	time.sleep(2)
 	RCM.showCubeFaceToPostument(side=4)"""
-
+	#RCM.determineColors()
 	#time.sleep(100)
 	print "program done" 

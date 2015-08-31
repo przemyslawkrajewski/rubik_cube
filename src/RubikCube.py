@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import math
+import colorsys
 
 """class RubikCubeTileColors:
 	red=0
@@ -40,4 +41,7 @@ class CubeColor:
 		self.tile[face*9+tile].green=g
 		self.tile[face*9+tile].blue=b
 	def calculateDistance(self,tile1,tile2):
-		return math.sqrt( (tile1.red-tile2.red)*(tile1.red-tile2.red) + (tile1.green-tile2.green)*(tile1.green-tile2.green) + (tile1.blue-tile2.blue)*(tile1.blue-tile2.blue) )
+		#c1 = colorsys.rgb_to_hsv(tile1.red, tile1.green, tile1.blue)
+		#c2 = colorsys.rgb_to_hsv(tile2.red, tile2.green, tile2.blue)
+		return  math.sqrt((tile1.red-tile2.red)*(tile1.red-tile2.red) + (tile1.green-tile2.green)*(tile1.green-tile2.green) + (tile1.blue-tile2.blue)*(tile1.blue-tile2.blue))
+		#return  (c1[0]-c2[0])*(c1[0]-c2[0]) + (c1[1]-c2[1])*(c1[1]-c2[1]) 

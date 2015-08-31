@@ -7,12 +7,18 @@ import actionlib
 import time
 import math
 
+import os,sys
+
+import subprocess
+
 from rubik_cube.msg import *
 
 from openrave_irp6 import *
 from irpos import *
 
 from RubikCube import *
+
+import cube_convert
 
 import PyKDL
 
@@ -29,9 +35,9 @@ class RubikCubeManipulator:
 
 	robotsDistance=2.10
 	pi=3.1415926535
-	gripJoint=0.055
+	gripJoint=0.054
 	openJoint=0.072
-	wideOpenJoint=0.09
+	wideOpenJoint=0.089
 	
 	cubeSize = 0.046
 	fcx=0.026 #prawo
@@ -39,10 +45,10 @@ class RubikCubeManipulator:
 	
 	#spcx1=0.02 #dol
 	#spcy1=0.012
-	spcx1=0.007 # dol
-	spcy1=0.012
-	spcx2=0.0
-	spcy2=-0.0
+	spcx1=0.0 # dol
+	spcy1=0.0
+	spcx2=-0.0075
+	spcy2=0.01
 	
 	def __init__(self,mode='urdf',xmlFile='data/irp6both.env.xml',viewerEnabled=True,manageIrpos=True,simulate=True,planner=None,csn=False):
 		self.env, self.robot = openraveIrp6.initialize(mode,xmlFile,viewerEnabled,manageIrpos,planner,csn)
@@ -161,11 +167,45 @@ class RubikCubeManipulator:
 	#
 	#
 
+	def getCubeFromConveyorToPostument(self):
+		self.robot.postument.moveToJointPosition([0.0, -1.57, 0.0, 0.0, 4.71, 0.0],self.simulate)
+		
+		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
+		
+		self.robot.postument.moveRelativeToCartesianPosition(z_tran=0.05)
+		
+		time.sleep(3)
+		self.cubeFaceColors = None
+		while self.cubeFaceColors!=None:
+			time.sleep(0.5)
+		while not hasattr(self.cubeFaceColors,'x'):
+			time.sleep(0.5)
+		
+		print self.cubeFaceColors.x/1000-0.012
+		print self.cubeFaceColors.y/1000-0.059
+		
+		self.robot.postument.moveRelativeToCartesianPosition(x_tran=-(self.cubeFaceColors.y/1000-0.059),y_tran=(self.cubeFaceColors.x/1000))
+		self.robot.postument.moveRelativeToJointPosition([0,0,0,0,0,self.cubeFaceColors.z_rot])
+		
+		self.robot.postument.moveRelativeToCartesianPosition(z_tran=0.13)
+		
+		self.robot.postument.tfgToJointPosition(position=0.068,simulate=self.simulate)
+
+		self.robot.postument.startForceControl(tran_z=True,mov_z=0.013)
+		time.sleep(5)
+		self.robot.postument.stopForceControl()
+
+		self.robot.postument.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
+		
+		self.robot.postument.moveRelativeToCartesianPosition(z_tran=-0.13)
+		
+		self.robot.postument.attachItem(self.cube)
+
 	def getCubeFromHumanToTrack(self):
 		#self.robot.track.moveToJointPosition([0.549969, 0.9265588068203238, -1.5550934102940197, 0.04871716017958537, 1.3063556317588827, 2.6762106103323573, -0.13097870260389663],self.simulate)
 		#Preparing arm and gripper to get cube
 		self.robot.track.moveToCartesianPosition(Pose(Point(1,1,1.18),Quaternion(-0.441448339193, 0.440445333852, -0.552396228639, 0.55316333781)),self.simulate)
-		self.robot.track.tfgToJointPosition(position=0.068,simulate=self.simulate)
+		self.robot.track.tfgToJointPosition(position=0.064,simulate=self.simulate)
 		
 		#Force controll to approach the cube
 		self.robot.track.startForceControl(tran_z=True,mov_z=0.013)
@@ -193,7 +233,7 @@ class RubikCubeManipulator:
 		#self.robot.track.moveToJointPosition([1, 0.0, -1.4476547584053457, 0.012313341484619551, 1.2106388401258297, 1.57, 0],self.simulate)
 		#Preparing arm and gripper to get cube
 		self.robot.postument.moveToCartesianPosition(Pose(Point(0.89668151225, 0.10325876098, 1.32973306404),Quaternion(-0.247541182161, 0.554930714941, -0.682010199583, 0.406985690674)),self.simulate)
-		self.robot.postument.tfgToJointPosition(position=0.068,simulate=self.simulate)
+		self.robot.postument.tfgToJointPosition(position=0.064,simulate=self.simulate)
 		
 		#Force controll to approach the cube
 		self.robot.postument.startForceControl(tran_z=True,mov_z=0.013)
@@ -265,22 +305,23 @@ class RubikCubeManipulator:
 		#self.sidePostument(z_dist=0.15,y_dist=self.spcy1,x_dist=self.spcx1,angle=-self.pi/4,showAngle=self.pi/4)
 		#Parameters correcting position of gripping used in 2 function calls sidePostument
 		if side % 2 ==0:
-			distanceZ=0.01
+			sAngle=self.pi/4
 			posCorrectionX=self.spcx1
 			posCorrectionY=self.spcy1
-			sAngle=self.pi/4
 		else:
-			distanceZ=0.026
+			sAngle=-self.pi/4
 			posCorrectionX=self.spcx2
 			posCorrectionY=self.spcy2
-			sAngle=-self.pi/4
-		a=-self.pi/4+side*self.pi/2
+		distanceZ=0.02
+		a=-self.pi/4-side*self.pi/2
 		
 		#Preparing postument to give cube
-		if side<2:
-			self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -1.91],self.simulate)
-		else:
-			self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, 1.24],self.simulate)
+		#if side<2:
+		#	self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -1.91],self.simulate)
+		#else:
+		#	self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, 1.24],self.simulate)
+	
+		self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -2.01+side*self.pi/2],self.simulate)
 			
 		#Tracks first approach to cube
 		self.sidePostument(z_dist=0.15,y_dist=posCorrectionY,x_dist=posCorrectionX,showAngle=sAngle,angle=a)
@@ -292,18 +333,22 @@ class RubikCubeManipulator:
 		
 		#Track comes nearer
 		self.sidePostument(z_dist=distanceZ,y_dist=posCorrectionY,x_dist=posCorrectionX,showAngle=sAngle,angle=a)
-		#self.sidePostument(z_dist=distanceZ,y_dist=posCorrectionY,x_dist=posCorrectionX,showAngle=sAngle,angle=a,correction=True)
+		self.robot.track.startForceControl(tran_z=True,mov_z=0.010)
+		time.sleep(2)
+		self.robot.track.stopForceControl()
 		
 		#Track tights gripper but still open
 		self.robot.postument.startForceControl(tran_x=True,tran_y=True)
-		self.robot.track.tfgToJointPosition(position=0.068,simulate=self.simulate)
+		self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 		self.robot.postument.stopForceControl()
 		
+		self.robot.track.tfgToJointPosition(position=0.065,simulate=self.simulate)
+		
 		#Force controll to track approach to the end
-		self.robot.track.startForceControl(tran_x=True,tran_y=True,tran_z=True,mov_z=0.013)
-		self.robot.postument.startForceControl(rot_x=True,rot_y=True)
+		self.robot.track.startForceControl(tran_x=True,tran_y=True,tran_z=True,mov_z=0.010)
+		#self.robot.postument.startForceControl(rot_x=True,rot_y=True)
 		time.sleep(5)
-		self.robot.postument.stopForceControl()
+		#self.robot.postument.stopForceControl()
 		self.robot.track.stopForceControl()
 		
 		#Track closes gripper and Postument opens
@@ -312,10 +357,14 @@ class RubikCubeManipulator:
 		self.robot.postument.stopForceControl()
 		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		
-		self.robot.postument.startForceControl(tran_z=True,mov_z=-0.013)
-		time.sleep(5)
+		self.robot.postument.startForceControl(tran_z=True,mov_z=-0.023)
+		time.sleep(4)
 		self.robot.postument.stopForceControl()
-		self.robot.track.moveRelativeToJointPosition([0,1,0,0,0,0,0],simulate=self.simulate)
+		
+		self.robot.track.startForceControl(tran_z=True,mov_z=-0.023)
+		time.sleep(4)
+		self.robot.track.stopForceControl()
+		
 		
 		self.robot.track.attachItem(self.cube)
 		
@@ -383,12 +432,12 @@ class RubikCubeManipulator:
 			self.robot.track.moveRelativeToCartesianPosition(z_tran=-0.15)
 		self.robot.track.releaseItem(self.cube)
 	def giveBackCubePostument(self,throw=False):
-		self.robot.postument.moveToJointPosition([0, -1.541861095576026, 0.0, 0.1007174886590251, 4.73, -1.01731301362624],self.simulate)
+		self.robot.postument.moveToJointPosition([0.0, -1.57, 0.0, 0.0, 4.71, 0.0],self.simulate)
 		if throw==False:
-			self.robot.postument.moveRelativeToCartesianPosition(z_tran=0.15)
+			self.robot.postument.moveRelativeToCartesianPosition(z_tran=0.18,y_tran=0.08)
 		self.robot.postument.tfgToJointPosition(position=self.openJoint,simulate=self.simulate)
 		if throw==False:
-			self.robot.postument.moveRelativeToCartesianPosition(z_tran=-0.15)
+			self.robot.postument.moveRelativeToCartesianPosition(z_tran=-0.17)
 		self.robot.postument.releaseItem(self.cube)
 		
 	def flipCubePostument(self):
@@ -428,16 +477,12 @@ class RubikCubeManipulator:
 		while not hasattr(self.cubeFaceColors,'x'):
 			time.sleep(0.5)
 			
-		self.fcy = (self.cubeFaceColors.y/1000)-0.01
-		self.fcx = (-self.cubeFaceColors.x/1000)+0.008
-		print "[Liczba na dzis]"
-		print self.fcx
-		print self.fcy
+		self.fcy = (self.cubeFaceColors.y/1000)-0.000
+		self.fcx = (-self.cubeFaceColors.x/1000)+0.005
+
 	def setCorrectionSide(self):
 		self.spcx1=0;
 		self.spcy1=0;
-		#spcx1=0.007 # dol
-		#spcy1=0.012
 		self.showCubeFaceToPostument(side=8)
 		
 		time.sleep(3)
@@ -449,29 +494,62 @@ class RubikCubeManipulator:
 
 		self.spcy1 = (-self.cubeFaceColors.x/1000)+0.003
 		self.spcx1 = (self.cubeFaceColors.y/1000)+0.002
+		
+		self.spcx2=0;
+		self.spcy2=0;
+		self.showCubeFaceToPostument(side=7)
+		
+		time.sleep(3)
+		self.cubeFaceColors = None
+		while self.cubeFaceColors!=None:
+			time.sleep(0.5)
+		while not hasattr(self.cubeFaceColors,'x'):
+			time.sleep(0.5)
+
+		self.spcy2 = (-self.cubeFaceColors.x/1000)
+		self.spcx2 = (self.cubeFaceColors.y/1000)+0.004
+		
+
+	def setCorrectionSide2(self):
+		self.spcx2=0;
+		self.spcy2=0;
+		self.showCubeFaceToPostument(side=7)
+		
+		time.sleep(3)
+		self.cubeFaceColors = None
+		while self.cubeFaceColors!=None:
+			time.sleep(0.5)
+		while not hasattr(self.cubeFaceColors,'x'):
+			time.sleep(0.5)
+
+		self.spcy2 = (-self.cubeFaceColors.x/1000)+0.003
+		self.spcx2 = (self.cubeFaceColors.y/1000)+0.002
 		print "[Liczba na dzis]"
-		print self.spcx1
-		print self.spcy1
+		print self.spcx2
+		print self.spcy2
 	def recieveCubeColors(self,data):
 		#rospy.loginfo(rospy.get_caller_id() + "I heard %s", data)
 		self.cubeFaceColors=data
 	def getCubeFaceColors(self):
-		return self.cubeFaceColors
-		
+		return self.cubeFaceColors	
 	def showCubeFaceToPostument(self,side=0):
 		if side==9 or side==0:
 			self.robot.postument.moveToJointPosition([-2.25, -1.44, 0.1, 0.10, 0.75, -1.91],self.simulate)
 		elif side==8: 
-			self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -1.91],self.simulate)
+			self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -2.01],self.simulate)
+		elif side==7:
+			self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -2.01+self.pi/2],self.simulate)
 		else:
+			#self.robot.postument.moveToJointPosition([-2.15, -1.64, -0.3, 0.00, 5.2, -3.48+side*self.pi/2],self.simulate)
 			self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -3.48+side*self.pi/2],self.simulate)
-		#self.robot.postument.moveToJointPosition([-1.479790858280902, -1.4102015044730352, -0.21013424670535094, 0.7401458075747863, 3.26903573191679872, 2.123324680667208],self.simulate)
 			
 		if side==9: # watch for catching cube from front
 			self.facePostument(z_dist=0.1,x_dist=0.002+self.fcx,y_dist=0.052+self.fcy,showAngle=self.pi/2)
-		if side==8: # -- || --  from side
+		elif side==8: # -- || --  from side
 			self.sidePostument(z_dist=0.1,x_dist=0.06+self.spcx1,y_dist=-0.0+self.spcy1,angle=-self.pi/4,showAngle=self.pi/4)
-		if side==0:  # watching front side of cube
+		elif side==7: # -- || --  from other side
+			self.sidePostument(z_dist=0.1,x_dist=0.055+self.spcx2,y_dist=-0.0+self.spcy2,angle=-3*self.pi/4,showAngle=-self.pi/4)
+		elif side==0:  # watching front side of cube
 			self.facePostument(z_dist=0.1,x_dist=0.002+self.fcx,y_dist=0.062+self.fcy,showAngle=self.pi/2+self.pi/4-self.pi/8)
 		elif side==1: # watching side of cube
 			self.sidePostument(z_dist=0.1,x_dist=0.06+self.spcx1,y_dist=-0.0+self.spcy1,angle=-1*self.pi/4,showAngle=self.pi/2-self.pi/8)
@@ -481,6 +559,18 @@ class RubikCubeManipulator:
 			self.sidePostument(z_dist=0.1,x_dist=0.06+self.spcx1,y_dist=-0.0+self.spcy1,angle=-5*self.pi/4,showAngle=self.pi/2-self.pi/8)
 #		elif side==4:
 #			self.sidePostument(z_dist=0.1,x_dist=0.06+self.spcx1,y_dist=-0.0+self.spcy1,angle=-7*self.pi/4,showAngle=self.pi/2-self.pi/8)
+
+	def showCubeFaceToPostument2(self,side=0):
+		if side==9 or side==0:
+			self.robot.postument.moveToJointPosition([-0.75, -1.44, 0.1, 0.10, 2.5, -1.91],self.simulate)
+		elif side==8: 
+			self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -1.91],self.simulate)
+		else:
+			self.robot.postument.moveToJointPosition([-1.1, -1.54, 0.1, 0.70, 1.0, -4.1+side*self.pi/2],self.simulate)
+			#self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -3.48+side*self.pi/2],self.simulate)
+		
+		if side==0:  # watching front side of cube
+			self.facePostument(z_dist=0.1,x_dist=-0.02+self.fcx,y_dist=0.05+self.fcy,showAngle=self.pi/2+self.pi/4-self.pi/8)	
 
 	def fillCubeColor(self,side=0):
 		time.sleep(3)
@@ -509,26 +599,26 @@ class RubikCubeManipulator:
 			self.fillTileColor(5,8,self.cubeFaceColors.tile9)
 		if side==1 or side==3:
 			self.fillTileColor(side,0,self.cubeFaceColors.tile1)
-			self.fillTileColor(side,1,self.cubeFaceColors.tile2)
-			self.fillTileColor(side,2,self.cubeFaceColors.tile3)
 			self.fillTileColor(side,3,self.cubeFaceColors.tile4)
 			self.fillTileColor(side,4,self.cubeFaceColors.tile5)
+			self.fillTileColor(side,5,self.cubeFaceColors.tile6)
 			self.fillTileColor(side,6,self.cubeFaceColors.tile7)
 			self.fillTileColor(side,7,self.cubeFaceColors.tile8)
+			self.fillTileColor(side,8,self.cubeFaceColors.tile9)
 		if side==2 or side==4:
 			self.fillTileColor(side,0,self.cubeFaceColors.tile1)
 			self.fillTileColor(side,1,self.cubeFaceColors.tile2)
 			self.fillTileColor(side,2,self.cubeFaceColors.tile3)
+			self.fillTileColor(side,3,self.cubeFaceColors.tile4)
 			self.fillTileColor(side,4,self.cubeFaceColors.tile5)
 			self.fillTileColor(side,5,self.cubeFaceColors.tile6)
-			self.fillTileColor(side,7,self.cubeFaceColors.tile8)
-			self.fillTileColor(side,8,self.cubeFaceColors.tile9)
+			self.fillTileColor(side,6,self.cubeFaceColors.tile7)
 		if side==6 or side==8:
-			self.fillTileColor((side-5),5,self.cubeFaceColors.tile4)
-			self.fillTileColor((side-5),8,self.cubeFaceColors.tile1)
+			self.fillTileColor((side-5),1,self.cubeFaceColors.tile8)
+			self.fillTileColor((side-5),2,self.cubeFaceColors.tile7)
 		if side==7 or side==9:
-			self.fillTileColor((side-5),3,self.cubeFaceColors.tile6)
-			self.fillTileColor((side-5),6,self.cubeFaceColors.tile3)
+			self.fillTileColor((side-5),7,self.cubeFaceColors.tile2)
+			self.fillTileColor((side-5),8,self.cubeFaceColors.tile1)
 	
 	def fillTileColor(self,f,t,color):
 		#print str(color.red) + "  " + str(color.green) + "  " + str(color.blue)
@@ -561,7 +651,7 @@ class RubikCubeManipulator:
 				maxDistance=0
 				furthestIdx=0
 				for j in range(0,8):
-					if maxDistance < restColorDistance[j]:
+					if maxDistance < restColorDistance[j] or restColorIdx[j]==-1:
 						furthestIdx = j
 						maxDistance = restColorDistance[j]
 				
@@ -575,7 +665,7 @@ class RubikCubeManipulator:
 		#print numerki pol
 		for i in range(0,6):
 			for j in range(0,3):
-				print str(self.printColor(self.cubeColors.getTile(i,j*3).number)) + " " + str(self.printColor(self.cubeColors.getTile(i,j*3+1).number)) + " " + str(self.printColor(self.cubeColors.getTile(i,j*3+2).number))
+				print str(self.printColor(self.cubeColors.getTile(i,j*3+2).number)) + " " + str(self.printColor(self.cubeColors.getTile(i,j*3+1).number)) + " " + str(self.printColor(self.cubeColors.getTile(i,j*3).number))
 			print " " 
 			
 		#print kolorki pol
@@ -584,7 +674,11 @@ class RubikCubeManipulator:
 				print str(self.cubeColors.getTile(i,j*3).red) +"," + str(self.cubeColors.getTile(i,j*3).green) + "," + str(self.cubeColors.getTile(i,j*3).blue) + "  " + str(self.cubeColors.getTile(i,j*3+1).red) +"," + str(self.cubeColors.getTile(i,j*3+1).green) + "," + str(self.cubeColors.getTile(i,j*3+1).blue) + "  " + str(self.cubeColors.getTile(i,j*3+2).red) +"," + str(self.cubeColors.getTile(i,j*3+2).green) + "," + str(self.cubeColors.getTile(i,j*3+2).blue)
 			print " " 
 			
+		for i in range(0,54):
+			print str(self.cubeColors.getColor(i).red) +"," + str(self.cubeColors.getColor(i).green) + "," + str(self.cubeColors.getColor(i).blue)
+			
 	def printColor(self,n):
+		#return str(n)
 		if n==0:
 			return "white"
 		if n==1:
@@ -596,8 +690,82 @@ class RubikCubeManipulator:
 		if n==4:
 			return "green"
 		if n==5:
-			return "blue"
+			return "blue" 
+
+	#
+	#
+	#	SOLVING CUBE
+	#
+	#
 				
+	def rotateCube(self,angle):
+		fcx=self.fcx
+		fcy=self.fcy
+		
+		#Preparing postument to give cube
+		self.robot.postument.moveToJointPosition([-2.25, -1.44, 0.1, 0.10, 0.75, -1.91],self.simulate)
+		
+		#Tracks first approach to cube
+		self.facePostument(z_dist=0.15,x_dist=fcx,y_dist=fcy,showAngle=0)
+		
+		self.robot.postument.releaseItem(self.cube)
+		
+		#Track opens gripper
+		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
+
+		#Track comes nearer
+		self.facePostument(z_dist=0.01,x_dist=fcx,y_dist=fcy,showAngle=0)
+		
+		self.robot.postument.startForceControl(tran_x=True,tran_y=True)
+		self.robot.track.tfgToJointPosition(position=0.060,simulate=self.simulate)
+		self.robot.postument.stopForceControl()
+		
+		
+		if angle==90:
+			position = (self.robot.track.getJointPosition())[6]
+			self.robot.track.startForceControl(rot_z=True,force_z=0.2,value=0.2)
+			while math.fabs(position-(self.robot.track.getJointPosition())[6])<1.57:
+				time.sleep(0.1)
+			self.robot.track.stopForceControl()	
+		elif angle==-90:
+			position = (self.robot.track.getJointPosition())[6]
+			self.robot.track.startForceControl(rot_z=True,force_z=-0.2,value=0.2)
+			while math.fabs(position-(self.robot.track.getJointPosition())[6])<1.57:
+				time.sleep(0.1)
+			self.robot.track.stopForceControl()	
+		elif angle==180:
+			position = (self.robot.track.getJointPosition())[6]
+			self.robot.track.startForceControl(rot_z=True,force_z=0.2,value=0.2)
+			while math.fabs(position-(self.robot.track.getJointPosition())[6])<3.14:
+				time.sleep(0.1)
+			self.robot.track.stopForceControl()	
+		
+		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
+		
+		self.facePostument(z_dist=0.20,x_dist=fcx,y_dist=fcy,showAngle=0)
+		
+		self.robot.track.attachItem(self.cube)
+	
+	def findSolution(self,cubestate=None):
+	
+		if cubestate==None:
+			cubestate = cube_convert.cube_convert(self.cubeColors)
+		
+		#self.giveBackCubePostument()
+		
+		currentpath = os.getcwd()
+		
+		path = os.path.dirname(sys.argv[0])
+		print path
+		os.chdir(path)
+		cmd = ["./solver", cubestate]
+		p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+		out, err = p.communicate()
+
+		listOfStrings = out.split()
+
+		return listOfStrings
+	
 	#
 	#
 	#	THE FINAL METHOD!!!!!!!!
@@ -609,40 +777,143 @@ class RubikCubeManipulator:
 			print "Where is the cube?"
 			return
 		
-		self.setCorrectionFace()
 		
-		self.showCubeFaceToPostument(side=0)
+		self.showCubeFaceToPostument2(side=0)
 		self.fillCubeColor(0)
 		
-		self.setCorrectionSide()
 		
-		self.showCubeFaceToPostument(side=1)
+		self.showCubeFaceToPostument2(side=1)
 		self.fillCubeColor(1)
-		self.showCubeFaceToPostument(side=2)
+		self.showCubeFaceToPostument2(side=2)
 		self.fillCubeColor(2)
-		self.showCubeFaceToPostument(side=3)
+		self.showCubeFaceToPostument2(side=3)
 		self.fillCubeColor(3)
-		self.showCubeFaceToPostument(side=4)
+		self.showCubeFaceToPostument2(side=4)
 		self.fillCubeColor(4)
+		
+		self.setCorrectionFace()
+		self.setCorrectionSide()
 		
 		self.flipCubePostument()
 		
-		self.showCubeFaceToPostument(side=0)
+		self.showCubeFaceToPostument2(side=0)
 		self.fillCubeColor(5)
 		
-		self.showCubeFaceToPostument(side=1)
+		self.showCubeFaceToPostument2(side=1)
 		self.fillCubeColor(8)
-		self.showCubeFaceToPostument(side=2)
+		self.showCubeFaceToPostument2(side=2)
 		self.fillCubeColor(7)
-		self.showCubeFaceToPostument(side=3)
+		self.showCubeFaceToPostument2(side=3)
 		self.fillCubeColor(6)
-		self.showCubeFaceToPostument(side=4)
+		self.showCubeFaceToPostument2(side=4)
 		self.fillCubeColor(9)
+		
+		self.determineColors()
 		
 		self.giveBackCubePostument()
 		
-		self.determineColors()
 		self.moveToSynchroPosition()
+
+	def solveRubikCube(self):
+		
+		gotCube = self.getCubeFromHumanToPostument()
+		if not gotCube:
+			print "Where is the cube?"
+			return
+		
+		self.showCubeFaceToPostument2(side=0)
+		self.fillCubeColor(0)
+		
+		
+		self.showCubeFaceToPostument2(side=1)
+		self.fillCubeColor(1)
+		self.showCubeFaceToPostument2(side=2)
+		self.fillCubeColor(2)
+		self.showCubeFaceToPostument2(side=3)
+		self.fillCubeColor(3)
+		self.showCubeFaceToPostument2(side=4)
+		self.fillCubeColor(4)
+		
+		self.setCorrectionFace()
+		self.setCorrectionSide()
+		
+		self.flipCubePostument()
+		
+		self.showCubeFaceToPostument2(side=0)
+		self.fillCubeColor(5)
+		
+		self.showCubeFaceToPostument2(side=1)
+		self.fillCubeColor(8)
+		self.showCubeFaceToPostument2(side=2)
+		self.fillCubeColor(7)
+		self.showCubeFaceToPostument2(side=3)
+		self.fillCubeColor(6)
+		self.showCubeFaceToPostument2(side=4)
+		self.fillCubeColor(9)
+		
+		self.determineColors()
+
+		solution = self.findSolution()
+
+		#solution = self.findSolution("nybonnnnnyongynnnobnnnynngynnnnnrybnnnrynngnnnyrnnnbnognnnnonnrnbnnrngnnnnnbwonnnnwowognnnbnwnnnwgnnnnwnrnbnnrnnnwnrngnw")
+	
+		cubeInHand = ['D','B','R','T','L','F']
+		print solution
+		print cubeInHand
+		for i in solution:
+			if len(i)<2:
+				print "Rotate " + i[0] + " 90"
+				s = i[0]
+				d=90
+			elif i[0]=='2':
+				print "Rotate " + i[1] + " 180"
+				s = i[1]
+				d=180
+			else:
+				print "Rotate " + i[0] + " -90"
+				s = i[0]
+				d=-90
+			current_side=0
+			for j in range(0,6):
+				if cubeInHand[j]==s:
+					current_side=j
+					break;
+			print current_side
+			if current_side==2:
+				self.getCubeFromPostumentToTrackSide(side=3)
+				self.getCubeFromTrackToPostument(angle=180)
+				tmp = [' ',' ',' ',' ',' ',' ']
+				tmp[0]=cubeInHand[2]; tmp[1]=cubeInHand[1]; tmp[2]=cubeInHand[3]; tmp[3]=cubeInHand[4]; tmp[4]=cubeInHand[0]; tmp[5]=cubeInHand[5]
+				cubeInHand=tmp
+			elif current_side==5:
+				self.getCubeFromPostumentToTrackSide(side=2)
+				self.getCubeFromTrackToPostument(angle=180)
+				tmp = [' ',' ',' ',' ',' ',' ']
+				tmp[0]=cubeInHand[5]; tmp[1]=cubeInHand[3]; tmp[2]=cubeInHand[4]; tmp[3]=cubeInHand[1]; tmp[4]=cubeInHand[2]; tmp[5]=cubeInHand[0]
+				cubeInHand=tmp
+			elif current_side==3:
+				self.flipCubePostument()
+				tmp = [' ',' ',' ',' ',' ',' ']
+				tmp[0]=cubeInHand[3]; tmp[1]=cubeInHand[1]; tmp[2]=cubeInHand[4]; tmp[3]=cubeInHand[0]; tmp[4]=cubeInHand[2]; tmp[5]=cubeInHand[5]
+				cubeInHand=tmp
+			elif current_side==1:
+				self.getCubeFromPostumentToTrackSide(side=0)
+				self.getCubeFromTrackToPostument(angle=180)
+				tmp = [' ',' ',' ',' ',' ',' ']
+				tmp[0]=cubeInHand[1]; tmp[1]=cubeInHand[3]; tmp[2]=cubeInHand[2]; tmp[3]=cubeInHand[5]; tmp[4]=cubeInHand[4]; tmp[5]=cubeInHand[0]
+				cubeInHand=tmp	
+			elif current_side==4:
+				self.getCubeFromPostumentToTrackSide(side=1)
+				self.getCubeFromTrackToPostument(angle=180)
+				tmp = [' ',' ',' ',' ',' ',' ']
+				tmp[0]=cubeInHand[4]; tmp[1]=cubeInHand[5]; tmp[2]=cubeInHand[3]; tmp[3]=cubeInHand[2]; tmp[4]=cubeInHand[0]; tmp[5]=cubeInHand[0]
+				cubeInHand=tmp
+			self.rotateCube(d)
+			print cubeInHand
+		self.giveBackCubePostument()
+		
+		self.moveToSynchroPosition()
+		
 	#
 	#
 	#	Testing
@@ -658,7 +929,7 @@ class RubikCubeManipulator:
 		self.facePostument(z_dist=0.15,x_dist=self.fcx,y_dist=self.fcy,showAngle=self.pi/2)
 
 	def sidePostumentRobotTest1(self):
-		self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -1.91],self.simulate)
+		self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -2.01],self.simulate)
 		self.robot.track.tfgToJointPosition(position=0.068,simulate=self.simulate)
 		
 		self.sidePostument(z_dist=0.15,y_dist=self.spcy1,x_dist=self.spcx1,angle=-self.pi/4,showAngle=self.pi/4)
@@ -667,13 +938,13 @@ class RubikCubeManipulator:
 		self.sidePostument(z_dist=0.15,y_dist=self.spcy1,x_dist=self.spcx1,angle=-self.pi/4,showAngle=self.pi/4)
 
 	def sidePostumentRobotTest2(self):
-		self.robot.postument.moveToJointPosition([-2.38227752354415, -1.441861095576026, 0.1, 0.1007174886590251, 0.554815971689398, -1.91731301362624],self.simulate)
+		self.robot.postument.moveToJointPosition([-2.05, -1.34, 0.0, 0.10, 0.45, -2.01+1.57],self.simulate)
 		self.robot.track.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		
-		self.sidePostument(z_dist=0.15,y_dist=self.spcy2,x_dist=self.spcx2,showAngle=self.pi/4,angle=3*self.pi/4)
-		self.sidePostument(z_dist=0.05,y_dist=self.spcy2,x_dist=self.spcx2,showAngle=self.pi/4,angle=3*self.pi/4)
+		#self.sidePostument(z_dist=0.15,y_dist=self.spcy2,x_dist=self.spcx2,showAngle=-self.pi/4,angle=-3*self.pi/4)
+		self.sidePostument(z_dist=0.03,y_dist=self.spcy2,x_dist=self.spcx2,showAngle=-self.pi/4,angle=-3*self.pi/4)
 		time.sleep(20)
-		self.sidePostument(z_dist=0.15,y_dist=self.spcy2,x_dist=self.spcx2,showAngle=self.pi/4,angle=3*self.pi/4)
+		#self.sidePostument(z_dist=0.15,y_dist=self.spcy2,x_dist=self.spcx2,showAngle=-self.pi/4,angle=-3*self.pi/4)
 
 	def quaternion_to_matrix(self,q):
 		X=q[0];
