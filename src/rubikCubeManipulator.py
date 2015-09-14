@@ -35,9 +35,9 @@ class RubikCubeManipulator:
 
 	robotsDistance=2.10
 	pi=3.1415926535
-	gripJoint=0.054
+	gripJoint=0.055
 	openJoint=0.072
-	wideOpenJoint=0.089
+	wideOpenJoint=0.085
 	
 	cubeSize = 0.046
 	fcx=0.026 #prawo
@@ -342,7 +342,7 @@ class RubikCubeManipulator:
 		self.robot.track.tfgToJointPosition(position=self.gripJoint,simulate=self.simulate)
 		self.robot.postument.stopForceControl()
 		
-		self.robot.track.tfgToJointPosition(position=0.065,simulate=self.simulate)
+		self.robot.track.tfgToJointPosition(position=0.064,simulate=self.simulate)
 		
 		#Force controll to track approach to the end
 		self.robot.track.startForceControl(tran_x=True,tran_y=True,tran_z=True,mov_z=0.010)
@@ -358,11 +358,11 @@ class RubikCubeManipulator:
 		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		
 		self.robot.postument.startForceControl(tran_z=True,mov_z=-0.023)
-		time.sleep(4)
+		time.sleep(5)
 		self.robot.postument.stopForceControl()
 		
 		self.robot.track.startForceControl(tran_z=True,mov_z=-0.023)
-		time.sleep(4)
+		time.sleep(5)
 		self.robot.track.stopForceControl()
 		
 		
@@ -408,7 +408,7 @@ class RubikCubeManipulator:
 		self.robot.postument.tfgToJointPosition(position=self.wideOpenJoint,simulate=self.simulate)
 		
 		#Track is moving back
-		self.facePostument(z_dist=0.15,x_dist=self.fcx,y_dist=self.fcy,showAngle=angle)
+		self.facePostument(z_dist=0.16,x_dist=self.fcx,y_dist=self.fcy,showAngle=angle)
 		
 		self.robot.track.attachItem(self.cube)
 		
@@ -493,7 +493,7 @@ class RubikCubeManipulator:
 			time.sleep(0.5)
 
 		self.spcy1 = (-self.cubeFaceColors.x/1000)+0.003
-		self.spcx1 = (self.cubeFaceColors.y/1000)+0.002
+		self.spcx1 = (self.cubeFaceColors.y/1000)+0.003
 		
 		self.spcx2=0;
 		self.spcy2=0;
@@ -816,6 +816,7 @@ class RubikCubeManipulator:
 
 	def solveRubikCube(self):
 		
+		#self.getCubeFromConveyorToPostument()
 		gotCube = self.getCubeFromHumanToPostument()
 		if not gotCube:
 			print "Where is the cube?"
@@ -889,24 +890,24 @@ class RubikCubeManipulator:
 				self.getCubeFromPostumentToTrackSide(side=2)
 				self.getCubeFromTrackToPostument(angle=180)
 				tmp = [' ',' ',' ',' ',' ',' ']
-				tmp[0]=cubeInHand[5]; tmp[1]=cubeInHand[3]; tmp[2]=cubeInHand[4]; tmp[3]=cubeInHand[1]; tmp[4]=cubeInHand[2]; tmp[5]=cubeInHand[0]
+				tmp[0]=cubeInHand[5]; tmp[1]=cubeInHand[0]; tmp[2]=cubeInHand[2]; tmp[3]=cubeInHand[1]; tmp[4]=cubeInHand[4]; tmp[5]=cubeInHand[3]
 				cubeInHand=tmp
 			elif current_side==3:
 				self.flipCubePostument()
 				tmp = [' ',' ',' ',' ',' ',' ']
-				tmp[0]=cubeInHand[3]; tmp[1]=cubeInHand[1]; tmp[2]=cubeInHand[4]; tmp[3]=cubeInHand[0]; tmp[4]=cubeInHand[2]; tmp[5]=cubeInHand[5]
+				tmp[0]=cubeInHand[3]; tmp[1]=cubeInHand[5]; tmp[2]=cubeInHand[4]; tmp[3]=cubeInHand[0]; tmp[4]=cubeInHand[2]; tmp[5]=cubeInHand[1]
 				cubeInHand=tmp
 			elif current_side==1:
 				self.getCubeFromPostumentToTrackSide(side=0)
 				self.getCubeFromTrackToPostument(angle=180)
 				tmp = [' ',' ',' ',' ',' ',' ']
-				tmp[0]=cubeInHand[1]; tmp[1]=cubeInHand[3]; tmp[2]=cubeInHand[2]; tmp[3]=cubeInHand[5]; tmp[4]=cubeInHand[4]; tmp[5]=cubeInHand[0]
+				tmp[0]=cubeInHand[1]; tmp[1]=cubeInHand[0]; tmp[2]=cubeInHand[4]; tmp[3]=cubeInHand[5]; tmp[4]=cubeInHand[2]; tmp[5]=cubeInHand[3]
 				cubeInHand=tmp	
 			elif current_side==4:
 				self.getCubeFromPostumentToTrackSide(side=1)
 				self.getCubeFromTrackToPostument(angle=180)
 				tmp = [' ',' ',' ',' ',' ',' ']
-				tmp[0]=cubeInHand[4]; tmp[1]=cubeInHand[5]; tmp[2]=cubeInHand[3]; tmp[3]=cubeInHand[2]; tmp[4]=cubeInHand[0]; tmp[5]=cubeInHand[0]
+				tmp[0]=cubeInHand[4]; tmp[1]=cubeInHand[5]; tmp[2]=cubeInHand[3]; tmp[3]=cubeInHand[2]; tmp[4]=cubeInHand[0]; tmp[5]=cubeInHand[1]
 				cubeInHand=tmp
 			self.rotateCube(d)
 			print cubeInHand
